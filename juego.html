@@ -1,0 +1,727 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>La Carrera de Filtración: Misión Higuerillo</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts: Poppins -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        ecoGreen: {
+                            100: '#e8f5e9',
+                            300: '#81c784',
+                            500: '#2e7d32',
+                            700: '#1b5e20',
+                            800: '#144617'
+                        },
+                        waterBlue: {
+                            100: '#e0f7fa',
+                            300: '#4dd0e1',
+                            500: '#00acc1',
+                            700: '#00838f',
+                            900: '#004d40'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Poppins', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: linear-gradient(135deg, #0f2027 0%, #203a43 50%, #2c5364 100%);
+            min-height: 100vh;
+        }
+
+        /* Animate track lines */
+        @keyframes moveTrack {
+            0% { background-position: 0 0; }
+            100% { background-position: 50px 0; }
+        }
+
+        .track-pattern {
+            background-image: repeating-linear-gradient(90deg, rgba(255,255,255,0.1) 0, rgba(255,255,255,0.1) 20px, transparent 20px, transparent 40px);
+            animation: moveTrack 2s linear infinite;
+        }
+
+        /* Bubble effect background */
+        .bubble {
+            position: absolute;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.15);
+            animation: floatUp 8s infinite ease-in-out;
+            bottom: -50px;
+        }
+
+        @keyframes floatUp {
+            0% { transform: translateY(0) scale(0.8); opacity: 0; }
+            50% { opacity: 0.6; }
+            100% { transform: translateY(-100vh) scale(1.2); opacity: 0; }
+        }
+
+        /* Avatar runner transition */
+        .runner-avatar {
+            transition: left 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.2);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #2e7d32;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body class="text-slate-100 flex flex-col justify-between min-h-screen relative overflow-x-hidden">
+
+    <!-- Background Animated Bubbles -->
+    <div id="bubbles-container" class="fixed inset-0 pointer-events-none z-0"></div>
+
+    <!-- MAIN CONTAINER -->
+    <div class="relative z-10 flex-grow flex flex-col max-w-6xl w-full mx-auto p-4 md:p-6">
+
+        <!-- HEADER -->
+        <header class="text-center my-4">
+            <h1 class="text-3xl md:text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-teal-300 via-green-300 to-emerald-400 drop-shadow-md">
+                <i class="fa-solid fa-droplet text-cyan-400 mr-2"></i> La Carrera de Filtración
+            </h1>
+            <p class="text-emerald-200 text-sm md:text-base font-medium tracking-wide mt-1">
+                <i class="fa-solid fa-leaf text-green-400 mr-1"></i> Misión Higuerillo & Purificación de Agua
+            </p>
+        </header>
+
+        <!-- 1. PANTALLA DE CONFIGURACIÓN Y JUGADORES -->
+        <section id="setup-screen" class="bg-slate-900/80 backdrop-blur-md p-6 md:p-8 rounded-2xl shadow-2xl border border-teal-500/30 max-w-3xl mx-auto w-full my-auto">
+            <h2 class="text-2xl font-bold text-center text-teal-300 mb-6 border-b border-teal-500/30 pb-3">
+                <i class="fa-solid fa-users mr-2"></i> Registro de Jugadores (1 a 4)
+            </h2>
+
+            <div id="players-input-container" class="space-y-4 mb-6">
+                <!-- Se llenará dinámicamente -->
+            </div>
+
+            <div class="flex flex-wrap gap-4 justify-between items-center pt-4 border-t border-slate-700">
+                <button id="add-player-btn" onclick="addPlayerField()" class="bg-teal-600 hover:bg-teal-500 text-white font-semibold py-2.5 px-5 rounded-xl transition duration-200 shadow-lg flex items-center gap-2">
+                    <i class="fa-solid fa-user-plus"></i> Añadir Jugador
+                </button>
+
+                <button onclick="startGame()" class="bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white font-extrabold text-lg py-3 px-8 rounded-xl shadow-xl transform hover:scale-105 transition duration-200 flex items-center gap-3">
+                    <i class="fa-solid fa-play"></i> ¡Iniciar Carrera!
+                </button>
+            </div>
+        </section>
+
+        <!-- 2. PANTALLA PRINCIPAL DE CARRERA Y PREGUNTAS -->
+        <section id="game-screen" class="hidden flex-col gap-6 w-full">
+            
+            <!-- INFORMACIÓN DE LA RONDA Y METROS -->
+            <div class="bg-slate-900/80 backdrop-blur-md p-4 rounded-xl border border-slate-700 flex flex-wrap justify-between items-center gap-4">
+                <div class="flex items-center gap-3">
+                    <span id="round-badge" class="bg-emerald-600 text-white text-xs font-extrabold px-3 py-1.5 rounded-full uppercase tracking-wider">
+                        Ronda 1
+                    </span>
+                    <span id="elimination-warning" class="text-xs text-amber-400 font-semibold hidden">
+                        <i class="fa-solid fa-triangle-exclamation mr-1"></i> ¡Eliminación al final de esta ronda!
+                    </span>
+                </div>
+                <div id="current-turn-display" class="text-lg font-bold text-teal-300 flex items-center gap-2">
+                    Turno de: <span id="turn-player-name" class="text-white bg-slate-800 px-3 py-1 rounded-lg border border-teal-500/50">Jugador</span>
+                </div>
+            </div>
+
+            <!-- PISTA DE CARRERAS ANIMADA -->
+            <div class="bg-slate-900/90 backdrop-blur-md p-4 rounded-2xl border border-teal-500/30 shadow-2xl">
+                <div class="flex justify-between text-xs font-bold text-slate-400 mb-2 px-2">
+                    <span>0m (Inicio)</span>
+                    <span>25m</span>
+                    <span>50m</span>
+                    <span>75m</span>
+                    <span class="text-amber-400"><i class="fa-solid fa-flag-checkered mr-1"></i>100m (Meta)</span>
+                </div>
+
+                <div id="track-lanes" class="space-y-3 relative">
+                    <!-- Carriles dinámicos -->
+                </div>
+            </div>
+
+            <!-- PANEL DE PREGUNTA / INTERACCIÓN -->
+            <div id="question-card" class="bg-slate-900/90 backdrop-blur-md p-6 rounded-2xl border border-emerald-500/40 shadow-2xl flex flex-col justify-between">
+                <div>
+                    <div class="flex justify-between items-center mb-3">
+                        <span id="question-category" class="text-xs font-bold px-2.5 py-1 rounded-md bg-teal-900/80 text-teal-300 border border-teal-500/30">
+                            Categoría
+                        </span>
+                        <span id="question-score-value" class="text-xs font-semibold text-slate-400">
+                            Recompensa: +15m
+                        </span>
+                    </div>
+
+                    <h3 id="question-text" class="text-lg md:text-xl font-bold text-white mb-6">
+                        ¿Cargando pregunta...?
+                    </h3>
+
+                    <!-- OPCIONES -->
+                    <div id="options-container" class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
+                        <!-- Botones de opciones creados con JS -->
+                    </div>
+                </div>
+
+                <!-- EXPLICACIÓN EDUCATIVA (MODAL / INLINE) -->
+                <div id="explanation-box" class="hidden mt-4 p-4 rounded-xl border transition-all duration-300">
+                    <h4 id="explanation-title" class="font-bold text-base mb-1 flex items-center gap-2"></h4>
+                    <p id="explanation-text" class="text-sm leading-relaxed text-slate-200"></p>
+                    <button id="next-turn-btn" onclick="nextTurn()" class="mt-4 w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2.5 px-4 rounded-xl shadow-md transition duration-200 flex items-center justify-center gap-2">
+                        Siguiente Turno <i class="fa-solid fa-arrow-right"></i>
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- 3. PODIO Y RESUMEN EDUCATIVO -->
+        <section id="podium-screen" class="hidden bg-slate-900/90 backdrop-blur-md p-6 md:p-8 rounded-2xl shadow-2xl border border-teal-500/30 max-w-4xl mx-auto w-full my-auto">
+            <h2 class="text-3xl font-extrabold text-center text-transparent bg-clip-text bg-gradient-to-r from-amber-300 to-yellow-500 mb-6">
+                <i class="fa-solid fa-trophy mr-2"></i> Podio de Purificación
+            </h2>
+
+            <!-- PODIO VISUAL -->
+            <div id="podium-display" class="flex justify-center items-end gap-3 md:gap-6 my-8 min-h-[220px]">
+                <!-- Podio dinámico construido por JS -->
+            </div>
+
+            <!-- RESUMEN EDUCATIVO -->
+            <div class="bg-slate-800/80 p-5 rounded-xl border border-slate-700 mb-6">
+                <h3 class="text-lg font-bold text-teal-300 mb-3 flex items-center gap-2">
+                    <i class="fa-solid fa-book-open text-emerald-400"></i> Resumen Educativo: Misión Higuerillo
+                </h3>
+                <ul class="space-y-2 text-sm text-slate-300">
+                    <li class="flex items-start gap-2">
+                        <i class="fa-solid fa-check text-green-400 mt-1"></i>
+                        <span><strong>Filtración por Poro:</strong> Físicamente retiene sólidos según el tamaño (ej. microfiltración).</span>
+                    </li>
+                    <li class="flex items-start gap-2">
+                        <i class="fa-solid fa-check text-green-400 mt-1"></i>
+                        <span><strong>Adsorción (Carbón Activado):</strong> Retiene contaminantes químicos y olores por atracción superficial.</span>
+                    </li>
+                    <li class="flex items-start gap-2">
+                        <i class="fa-solid fa-check text-green-400 mt-1"></i>
+                        <span><strong>Fitorremediación (Ricinus communis / Higuerillo):</strong> Uso de plantas e bio-adsorbentes derivados de sus residuos para extraer o neutralizar metales pesados y contaminantes en agua y suelo.</span>
+                    </li>
+                </ul>
+            </div>
+
+            <div class="text-center">
+                <button onclick="resetGame()" class="bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white font-extrabold py-3 px-8 rounded-xl shadow-xl transition duration-200">
+                    <i class="fa-solid fa-rotate-right mr-2"></i> Jugar de Nuevo
+                </button>
+            </div>
+        </section>
+
+    </div>
+
+    <!-- FOOTER -->
+    <footer class="relative z-10 text-center py-4 text-xs text-slate-400 border-t border-slate-800 bg-slate-950/50">
+        La Carrera de Filtración: Misión Higuerillo &copy; 2026 - Proyecto Educativo Ambiental
+    </footer>
+
+    <!-- MENSAJE MODAL PARA ELIMINACIONES -->
+    <div id="elimination-modal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm hidden flex items-center justify-center p-4">
+        <div class="bg-slate-900 border border-red-500/50 p-6 rounded-2xl max-w-md w-full text-center shadow-2xl transform transition-all scale-100">
+            <div class="w-16 h-16 bg-red-900/50 border border-red-500 rounded-full flex items-center justify-center mx-auto mb-4 text-red-400 text-2xl">
+                <i class="fa-solid fa-user-xmark"></i>
+            </div>
+            <h3 class="text-xl font-bold text-white mb-2">¡Ronda de Eliminación!</h3>
+            <p id="eliminated-player-text" class="text-slate-300 text-sm mb-6">El jugador con menor avance ha sido eliminado de la carrera.</p>
+            <button onclick="closeEliminationModal()" class="w-full bg-red-600 hover:bg-red-500 text-white font-bold py-2.5 rounded-xl transition duration-200">
+                Continuar Carrera
+            </button>
+        </div>
+    </div>
+
+    <!-- LÓGICA DEL JUEGO EN JAVASCRIPT -->
+    <script>
+        // --- AVATARES DISPONIBLES ---
+        const AVATARS = [
+            { id: 'water', name: 'Gota de Agua', icon: 'fa-droplet', color: 'bg-cyan-500', textColor: 'text-cyan-400', border: 'border-cyan-400' },
+            { id: 'seed', name: 'Semilla Higuerillo', icon: 'fa-seedling', color: 'bg-emerald-500', textColor: 'text-emerald-400', border: 'border-emerald-400' },
+            { id: 'carbon', name: 'Cristal Carbón', icon: 'fa-gem', color: 'bg-slate-600', textColor: 'text-slate-300', border: 'border-slate-400' },
+            { id: 'sand', name: 'Filtro Arena', icon: 'fa-cubes-stacked', color: 'bg-amber-600', textColor: 'text-amber-400', border: 'border-amber-400' }
+        ];
+
+        // --- BANCO DE PREGUNTAS EDUCATIVAS ---
+        const QUESTION_BANK = [
+            {
+                category: "Tamaño de Poro",
+                question: "¿Cuál es el principio principal de la filtración por tamaño de poro?",
+                options: [
+                    "Retener partículas más grandes que la luz del poro",
+                    "Destruir los microbios mediante calor",
+                    "Atraer químicos magnéticamente",
+                    "Evaporar el agua purificada"
+                ],
+                correct: 0,
+                explanation: "La filtración por tamaño de poro actúa como un tamiz físico: retiene cualquier partícula o microorganismo cuyo tamaño sea mayor que los aberturas (poros) del filtro."
+            },
+            {
+                category: "Microfiltración",
+                question: "¿Qué tipo de contaminantes suele remover la Microfiltración en el tratamiento de agua?",
+                options: [
+                    "Sólidos suspendidos y bacterias gruesas",
+                    "Sal disuelta del mar solamente",
+                    "Electrones e iones de sodio",
+                    "Únicamente virus pequeños"
+                ],
+                correct: 0,
+                explanation: "La microfiltración (poros de ~0.1 a 10 micras) elimina de manera efectiva sólidos en suspensión, arena fina, protozoos y la mayoría de las bacterias."
+            },
+            {
+                category: "Adsorbentes",
+                question: "¿Cómo funciona un material Adsorbente como el Carbón Activado?",
+                options: [
+                    "Fija moléculas de contaminantes en su superficie por atracción física/química",
+                    "Filtra únicamente piedras mediante una red de alambre",
+                    "Aumenta la temperatura del agua para derretir toxinas",
+                    "Muele los contaminantes hasta volverlos invisibles"
+                ],
+                correct: 0,
+                explanation: "La 'adsorción' (con d) es el fenómeno donde las moléculas de toxinas, olores y colorantes quedan atrapadas adheridas a la superficie porosa del material adsorbente."
+            },
+            {
+                category: "Fitorremediación & Higuerillo",
+                question: "¿Qué función cumple el Higuerillo (*Ricinus communis*) en la bio-filtración ambiental?",
+                options: [
+                    "Absorbe y acumula contaminantes o metales pesados del suelo y agua",
+                    "Enfría el agua congelándola instantáneamente",
+                    "Produce cloro sintético para desinfectar",
+                    "Aumenta la salinidad del agua retenida"
+                ],
+                correct: 0,
+                explanation: "El *Ricinus communis* es altamente valorado en fitorremediación por su capacidad de tolerancia y bioacumulación de contaminantes/metales en sus tejidos y raíces, además de usar su biomasa como bio-adsorbente."
+            },
+            {
+                category: "Microfiltración vs Ultrafiltración",
+                question: "¿Cuál es la diferencia de poro entre Microfiltración y Ultrafiltración?",
+                options: [
+                    "La Ultrafiltración tiene poros más pequeños y retiene virus",
+                    "La Microfiltración no tiene poros",
+                    "Ambas usan exclusivamente calor y luz solar",
+                    "La Microfiltración es más fina que la Nanofiltración"
+                ],
+                correct: 0,
+                explanation: "La Ultrafiltración posee poros sensiblemente más pequeños (0.01 a 0.1 micras) que la microfiltración, lo que le permite retener macromoléculas y virus."
+            },
+            {
+                category: "Bio-adsorbentes",
+                question: "¿Por qué los residuos procesados del Higuerillo son prometedores para limpiar agua?",
+                options: [
+                    "Poseen alta porosidad y grupos funcionales que atrapan colorantes y metales",
+                    "Se disuelven formando una capa de plástico sobre el agua",
+                    "Evitan que los peces respiren en el río",
+                    "Reemplazan totalmente al agua purificada"
+                ],
+                correct: 0,
+                explanation: "Los cáscaras o tortas residuales de *Ricinus communis* procesadas sirven como bio-adsorbentes de bajo costo con alta capacidad para remover metales pesados como plomo o cadmio."
+            }
+        ];
+
+        // --- ESTADO DEL JUEGO ---
+        let players = [];
+        let currentPlayerIndex = 0;
+        let currentRound = 1;
+        let questionsList = [];
+        let currentQuestionIndex = 0;
+        let activePlayersCount = 0;
+
+        // --- INICIALIZACIÓN ---
+        window.onload = function() {
+            createBubbles();
+            // Agregar 2 jugadores por defecto
+            addPlayerField("Jugador 1", 0);
+            addPlayerField("Jugador 2", 1);
+        };
+
+        // --- GENERADOR DE BURBUJAS ---
+        function createBubbles() {
+            const container = document.getElementById('bubbles-container');
+            for (let i = 0; i < 15; i++) {
+                const bubble = document.createElement('div');
+                bubble.className = 'bubble';
+                const size = Math.random() * 40 + 10;
+                bubble.style.width = `${size}px`;
+                bubble.style.height = `${size}px`;
+                bubble.style.left = `${Math.random() * 100}%`;
+                bubble.style.animationDuration = `${Math.random() * 6 + 4}s`;
+                bubble.style.animationDelay = `${Math.random() * 4}s`;
+                container.appendChild(bubble);
+            }
+        }
+
+        // --- PANTALLA SETUP: GESTIÓN DE JUGADORES ---
+        function addPlayerField(defaultName = "", forcedAvatarIndex = null) {
+            const container = document.getElementById('players-input-container');
+            const currentCount = container.children.length;
+
+            if (currentCount >= 4) {
+                alert("El número máximo de jugadores es 4.");
+                return;
+            }
+
+            const pIndex = currentCount;
+            const pName = defaultName || `Jugador ${pIndex + 1}`;
+            const avatarIdx = forcedAvatarIndex !== null ? forcedAvatarIndex : pIndex % AVATARS.length;
+
+            const div = document.createElement('div');
+            div.className = "player-input-card bg-slate-800/80 p-4 rounded-xl border border-slate-700 flex flex-wrap md:flex-nowrap items-center gap-4 transition";
+            div.id = `player-row-${pIndex}`;
+
+            div.innerHTML = `
+                <div class="flex-grow">
+                    <label class="block text-xs text-slate-400 font-semibold mb-1">Nombre del Jugador ${pIndex + 1}</label>
+                    <input type="text" value="${pName}" class="player-name-input bg-slate-900 border border-slate-600 text-white text-sm rounded-lg block w-full p-2.5 focus:border-teal-400 focus:outline-none" placeholder="Escribe el nombre">
+                </div>
+                <div>
+                    <label class="block text-xs text-slate-400 font-semibold mb-1">Selecciona Avatar</label>
+                    <select class="player-avatar-select bg-slate-900 border border-slate-600 text-white text-sm rounded-lg block w-full p-2.5 focus:border-teal-400 focus:outline-none">
+                        ${AVATARS.map((av, idx) => `
+                            <option value="${av.id}" ${idx === avatarIdx ? 'selected' : ''}>
+                                ${av.name}
+                            </option>
+                        `).join('')}
+                    </select>
+                </div>
+                ${pIndex >= 1 ? `
+                    <button onclick="removePlayerField(${pIndex})" class="mt-5 text-red-400 hover:text-red-300 p-2 rounded-lg hover:bg-slate-700/50 transition">
+                        <i class="fa-solid fa-trash"></i>
+                    </button>
+                ` : '<div class="w-8"></div>'}
+            `;
+
+            container.appendChild(div);
+        }
+
+        function removePlayerField(index) {
+            const container = document.getElementById('players-input-container');
+            if (container.children.length <= 1) {
+                alert("Debe haber al menos 1 jugador.");
+                return;
+            }
+            const row = document.getElementById(`player-row-${index}`);
+            if (row) row.remove();
+        }
+
+        // --- INICIAR JUEGO ---
+        function startGame() {
+            const container = document.getElementById('players-input-container');
+            const rows = container.getElementsByClassName('player-input-card');
+            players = [];
+
+            for (let i = 0; i < rows.length; i++) {
+                const nameInput = rows[i].querySelector('.player-name-input').value.trim() || `Jugador ${i+1}`;
+                const avatarId = rows[i].querySelector('.player-avatar-select').value;
+                const avatarObj = AVATARS.find(a => a.id === avatarId);
+
+                players.push({
+                    id: i,
+                    name: nameInput,
+                    avatar: avatarObj,
+                    distance: 0, // Metros (0 a 100)
+                    eliminated: false
+                });
+            }
+
+            if (players.length === 0) return;
+
+            // Reorganizar preguntas
+            questionsList = [...QUESTION_BANK].sort(() => Math.random() - 0.5);
+            currentQuestionIndex = 0;
+            currentPlayerIndex = 0;
+            currentRound = 1;
+            activePlayersCount = players.length;
+
+            // Transición de pantalla
+            document.getElementById('setup-screen').classList.add('hidden');
+            document.getElementById('game-screen').classList.remove('hidden');
+            document.getElementById('game-screen').classList.add('flex');
+
+            renderTrackLanes();
+            updateGameHeader();
+            loadNextQuestion();
+        }
+
+        // --- RENDERIZAR CARRILES DE CARRERA ---
+        function renderTrackLanes() {
+            const lanesContainer = document.getElementById('track-lanes');
+            lanesContainer.innerHTML = '';
+
+            players.forEach((player) => {
+                const isEliminated = player.eliminated;
+                const lane = document.createElement('div');
+                lane.className = `relative h-14 bg-slate-800/90 rounded-xl border ${isEliminated ? 'border-red-900/40 opacity-40' : 'border-slate-700'} flex items-center px-4 overflow-hidden track-pattern`;
+
+                // Porcentaje visual
+                const percentage = Math.min(player.distance, 100);
+
+                lane.innerHTML = `
+                    <div class="absolute left-3 font-bold text-xs z-10 flex items-center gap-2 ${player.avatar.textColor}">
+                        <i class="fa-solid ${player.avatar.icon}"></i>
+                        <span>${player.name} ${isEliminated ? '(Eliminado)' : ''}</span>
+                    </div>
+
+                    <!-- Runner Avatar Icon -->
+                    <div class="runner-avatar absolute z-20 top-1/2 -translate-y-1/2 flex items-center justify-center w-9 h-9 rounded-full ${player.avatar.color} text-slate-900 font-bold shadow-lg border-2 ${player.avatar.border}"
+                         style="left: calc(${percentage}% - ${percentage > 90 ? '36px' : '18px'});">
+                        <i class="fa-solid ${player.avatar.icon} text-sm text-white"></i>
+                    </div>
+
+                    <!-- Indicador de Metros en la derecha -->
+                    <div class="absolute right-3 font-extrabold text-xs text-emerald-400 z-10 bg-slate-950/70 px-2 py-1 rounded">
+                        ${player.distance}m
+                    </div>
+                `;
+
+                lanesContainer.appendChild(lane);
+            });
+        }
+
+        // --- ACTUALIZAR ENCABEZADO ---
+        function updateGameHeader() {
+            document.getElementById('round-badge').textContent = `Ronda ${currentRound}`;
+            
+            // Advertencia de eliminación cada 3 rondas
+            const warn = document.getElementById('elimination-warning');
+            if (currentRound % 3 === 0 && activePlayersCount > 1) {
+                warn.classList.remove('hidden');
+            } else {
+                warn.classList.add('hidden');
+            }
+
+            const activePlayer = players[currentPlayerIndex];
+            document.getElementById('turn-player-name').textContent = activePlayer.name;
+            document.getElementById('turn-player-name').className = `text-white bg-slate-800 px-3 py-1 rounded-lg border ${activePlayer.avatar.border}`;
+        }
+
+        // --- CARGAR PREGUNTA ---
+        function loadNextQuestion() {
+            // Ocultar caja de explicación
+            const expBox = document.getElementById('explanation-box');
+            expBox.classList.add('hidden');
+
+            // Habilitar contenedor de opciones
+            const optionsContainer = document.getElementById('options-container');
+            optionsContainer.innerHTML = '';
+
+            // Obtener pregunta actual
+            if (currentQuestionIndex >= questionsList.length) {
+                questionsList = [...QUESTION_BANK].sort(() => Math.random() - 0.5);
+                currentQuestionIndex = 0;
+            }
+
+            const q = questionsList[currentQuestionIndex];
+            document.getElementById('question-category').textContent = q.category;
+            document.getElementById('question-text').textContent = q.question;
+
+            // Opciones mezcladas
+            q.options.forEach((optText, idx) => {
+                const btn = document.createElement('button');
+                btn.className = "option-btn text-left p-4 rounded-xl bg-slate-800 hover:bg-slate-700/80 border border-slate-700 hover:border-teal-500 text-sm font-medium transition duration-200 text-slate-100 flex items-center justify-between group";
+                btn.onclick = () => handleAnswer(idx);
+
+                btn.innerHTML = `
+                    <span>${optText}</span>
+                    <i class="fa-regular fa-circle text-slate-500 group-hover:text-teal-400"></i>
+                `;
+                optionsContainer.appendChild(btn);
+            });
+        }
+
+        // --- MANEJO DE RESPUESTAS ---
+        function handleAnswer(selectedIndex) {
+            const q = questionsList[currentQuestionIndex];
+            const isCorrect = selectedIndex === q.correct;
+            const currentPlayer = players[currentPlayerIndex];
+
+            // Bloquear botones
+            const buttons = document.querySelectorAll('.option-btn');
+            buttons.forEach((btn, idx) => {
+                btn.disabled = true;
+                if (idx === q.correct) {
+                    btn.classList.remove('bg-slate-800', 'border-slate-700');
+                    btn.classList.add('bg-emerald-950/80', 'border-emerald-500', 'text-emerald-200');
+                    btn.querySelector('i').className = "fa-solid fa-circle-check text-emerald-400";
+                } else if (idx === selectedIndex && !isCorrect) {
+                    btn.classList.remove('bg-slate-800', 'border-slate-700');
+                    btn.classList.add('bg-red-950/80', 'border-red-500', 'text-red-200');
+                    btn.querySelector('i').className = "fa-solid fa-circle-xmark text-red-400";
+                }
+            });
+
+            // Avance
+            if (isCorrect) {
+                currentPlayer.distance += 15; // Ganar 15m
+            } else {
+                currentPlayer.distance += 5;  // Avance mínimo de consolación
+            }
+
+            renderTrackLanes();
+
+            // Mostrar Explicación
+            const expBox = document.getElementById('explanation-box');
+            const expTitle = document.getElementById('explanation-title');
+            const expText = document.getElementById('explanation-text');
+
+            expBox.classList.remove('hidden', 'bg-emerald-950/40', 'border-emerald-500/50', 'bg-red-950/40', 'border-red-500/50');
+
+            if (isCorrect) {
+                expBox.classList.add('bg-emerald-950/40', 'border-emerald-500/50');
+                expTitle.className = "font-bold text-base mb-1 flex items-center gap-2 text-emerald-400";
+                expTitle.innerHTML = `<i class="fa-solid fa-circle-check"></i> ¡Respuesta Correcta! (+15m)`;
+            } else {
+                expBox.classList.add('bg-red-950/40', 'border-red-500/50');
+                expTitle.className = "font-bold text-base mb-1 flex items-center gap-2 text-amber-400";
+                expTitle.innerHTML = `<i class="fa-solid fa-circle-info"></i> Respuesta Incorrecta (+5m de avance)`;
+            }
+
+            expText.textContent = q.explanation;
+        }
+
+        // --- SIGUIENTE TURNO / LÓGICA DE RONDAS Y ELIMINACIÓN ---
+        function nextTurn() {
+            currentQuestionIndex++;
+
+            // Comprobar si alguien llegó a la meta (100m)
+            const winner = players.find(p => p.distance >= 100);
+            if (winner) {
+                endGame();
+                return;
+            }
+
+            // Pasar al siguiente jugador NO eliminado
+            let nextIndex = (currentPlayerIndex + 1) % players.length;
+            
+            // Detectar si completamos una ronda completa
+            if (nextIndex === 0) {
+                currentRound++;
+
+                // Lógica de eliminación cada 3 rondas si hay más de 1 jugador activo
+                if ((currentRound - 1) % 3 === 0 && activePlayersCount > 1) {
+                    eliminateLowestPlayer();
+                    if (activePlayersCount <= 1 || players.some(p => p.distance >= 100)) {
+                        endGame();
+                        return;
+                    }
+                }
+            }
+
+            // Buscar el siguiente jugador activo
+            while (players[nextIndex].eliminated) {
+                nextIndex = (nextIndex + 1) % players.length;
+            }
+
+            currentPlayerIndex = nextIndex;
+            updateGameHeader();
+            loadNextQuestion();
+        }
+
+        // --- ELIMINAR AL JUGADOR CON MENOR PUNTAJE/DISTANCIA ---
+        function eliminateLowestPlayer() {
+            let active = players.filter(p => !p.eliminated);
+            if (active.length <= 1) return;
+
+            // Ordenar por menor distancia
+            active.sort((a, b) => a.distance - b.distance);
+            
+            // El de menor distancia es eliminado
+            const playerToEliminate = active[0];
+            playerToEliminate.eliminated = true;
+            activePlayersCount--;
+
+            renderTrackLanes();
+
+            // Mostrar modal de aviso
+            document.getElementById('eliminated-player-text').textContent = 
+                `El jugador "${playerToEliminate.name}" ha sido eliminado al final de la Ronda ${currentRound - 1} por tener el menor avance (${playerToEliminate.distance}m).`;
+            document.getElementById('elimination-modal').classList.remove('hidden');
+        }
+
+        function closeEliminationModal() {
+            document.getElementById('elimination-modal').classList.add('hidden');
+        }
+
+        // --- FIN DEL JUEGO / PODIO ---
+        function endGame() {
+            document.getElementById('game-screen').classList.add('hidden');
+            document.getElementById('podium-screen').classList.remove('hidden');
+
+            // Ordenar todos los jugadores por distancia
+            const sortedPlayers = [...players].sort((a, b) => b.distance - a.distance);
+
+            const podiumDisplay = document.getElementById('podium-display');
+            podiumDisplay.innerHTML = '';
+
+            // Configuración de altura y posición del podio (1st, 2nd, 3rd)
+            const podiumOrder = [1, 0, 2]; // Orden visual: 2do lugar izquierda, 1ro centro, 3ro derecha
+
+            podiumOrder.forEach((orderIdx) => {
+                if (orderIdx < sortedPlayers.length) {
+                    const p = sortedPlayers[orderIdx];
+                    const place = orderIdx + 1;
+
+                    let heightClass = "h-40";
+                    let bgClass = "bg-amber-500/20 border-amber-500/50";
+                    let crown = '<i class="fa-solid fa-trophy text-amber-400 text-2xl mb-1"></i>';
+
+                    if (place === 2) {
+                        heightClass = "h-32";
+                        bgClass = "bg-slate-400/20 border-slate-400/50";
+                        crown = '<i class="fa-solid fa-medal text-slate-300 text-xl mb-1"></i>';
+                    } else if (place === 3) {
+                        heightClass = "h-24";
+                        bgClass = "bg-amber-700/20 border-amber-700/50";
+                        crown = '<i class="fa-solid fa-award text-amber-600 text-xl mb-1"></i>';
+                    }
+
+                    const card = document.createElement('div');
+                    card.className = `flex flex-col items-center justify-end flex-1 max-w-[130px]`;
+                    card.innerHTML = `
+                        <div class="flex flex-col items-center mb-2">
+                            ${crown}
+                            <div class="w-10 h-10 rounded-full ${p.avatar.color} flex items-center justify-center text-white border-2 ${p.avatar.border} shadow-lg mb-1">
+                                <i class="fa-solid ${p.avatar.icon}"></i>
+                            </div>
+                            <span class="font-bold text-xs text-white truncate max-w-[100px]">${p.name}</span>
+                            <span class="text-xs text-emerald-400 font-extrabold">${p.distance}m</span>
+                        </div>
+                        <div class="w-full ${heightClass} ${bgClass} border-t-2 rounded-t-lg flex items-center justify-center font-extrabold text-xl text-white shadow-lg">
+                            ${place}º
+                        </div>
+                    `;
+                    podiumDisplay.appendChild(card);
+                }
+            });
+        }
+
+        // --- REINICIAR JUEGO ---
+        function resetGame() {
+            document.getElementById('podium-screen').classList.add('hidden');
+            document.getElementById('setup-screen').classList.remove('hidden');
+        }
+    </script>
+</body>
+</html>
